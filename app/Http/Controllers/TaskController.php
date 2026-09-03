@@ -2,73 +2,126 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Task;
+use App\Models\Category;
+use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    // Menampilkan semua task
     public function index()
     {
-        $tasks = Task::all();
-        return response()->json($tasks, 200);
+        $tasks = Task::with('category')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $tasks
+        ], 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Menampilkan form tambah task (Biasanya untuk API mengembalikan data pendukung)
+    public function create()
+    {
+        $categories = Category::all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories
+        ], 200);
+    }
+
+    // Menyimpan task baru
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'deadline' => 'nullable|date',
-            'priority' => 'nullable|string',
-            'status' => 'nullable|string',
+            'status' => 'required|in:pending,completed',
+            'priority' => 'required|in:low,medium,high',
         ]);
 
-        $task = Task::create($validated);
-        return response()->json($task, 201);
+        $task = Task::create([
+            'user_id' => auth()->id(),
+            'category_id' => $request->category_id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'deadline' => $request->deadline,
+            'status' => $request->status,
+            'priority' => $request->priority,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Task berhasil ditambahkan!',
+            'data' => $task
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    // Menampilkan detail task
+    public function show(Task $task)
     {
-        $task = Task::findOrFail($id);
-        return response()->json($task, 200);
+        $task->load('category');
+
+        return response()->json([
+            'success' => true,
+            'data' => $task
+        ], 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    // Menampilkan form edit task
+    public function edit(Task $task)
     {
-        $task = Task::findOrFail($id);
+        $categories = Category::all();
 
-        $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'task' => $task,
+                'categories' => $categories
+            ]
+        ], 200);
+    }
+
+    // Mengupdate task
+    public function update(Request $request, Task $task)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'deadline' => 'nullable|date',
-            'priority' => 'nullable|string',
-            'status' => 'nullable|string',
+            'status' => 'required|in:pending,completed',
+            'priority' => 'required|in:low,medium,high',
         ]);
 
-        $task->update($validated);
-        return response()->json($task, 200);
+        $task->update([
+            'category_id' => $request->category_id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'deadline' => $request->deadline,
+            'status' => $request->status,
+            'priority' => $request->priority,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Task berhasil diperbarui!',
+            'data' => $task
+        ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    // Menghapus task
+    public function destroy(Task $task)
     {
-        $task = Task::findOrFail($id);
         $task->delete();
 
-        return response()->json(['message' => 'Task berhasil dihapus'], 200);
+        return response()->json([
+            'success' => true,
+            'message' => 'Task berhasil dihapus!'
+        ], 200);
     }
 }

@@ -60,13 +60,13 @@ class AuthController extends Controller
         ], 200);
     }
 
-    //LOGOUT
-    public function logout(Illuminate\Http\Request $request)
-{
-    $request->user()->currentAccessToken()->delete();
+   // LOGOUT
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
 
-    return response()->json([
-        'message' => 'Logged out successfully'
-    ]);
-}
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
+    }
 }

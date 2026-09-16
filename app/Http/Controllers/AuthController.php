@@ -21,6 +21,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user',
         ]);
 
         $token = $user->createToken('listgo-token')->plainTextToken;
@@ -28,6 +29,32 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Register berhasil!',
+            'user' => $user,
+            'token' => $token,
+        ], 201);
+    }
+
+    // REGISTER KHUSUS ADMIN
+    public function registerAdmin(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => 'admin', // 👈 Secara tegas diset sebagai admin
+        ]);
+
+        $token = $user->createToken('listgo-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registrasi Admin berhasil!',
             'user' => $user,
             'token' => $token,
         ], 201);
@@ -55,7 +82,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil!',
-            'user' => $user,
+            'user' => $user, 
             'token' => $token,
         ], 200);
     }
@@ -66,6 +93,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Logged out successfully'
         ]);
     }

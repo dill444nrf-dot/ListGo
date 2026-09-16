@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 
 class ReminderController extends Controller
 {
-    // Menampilkan semua reminder (JSON)
     public function index()
     {
         $reminders = Reminder::with('task')->latest()->get();
@@ -19,7 +18,6 @@ class ReminderController extends Controller
         ], 200);
     }
 
-    // Menyimpan reminder baru (JSON)
     public function store(Request $request)
     {
         $request->validate([
@@ -33,6 +31,8 @@ class ReminderController extends Controller
             'is_sent' => false,
         ]);
 
+        $reminder->load('task'); // ✅ tambahan
+
         return response()->json([
             'success' => true,
             'message' => 'Reminder berhasil ditambahkan!',
@@ -40,7 +40,6 @@ class ReminderController extends Controller
         ], 201);
     }
 
-    // Menampilkan detail reminder (JSON)
     public function show(Reminder $reminder)
     {
         $reminder->load('task');
@@ -51,7 +50,6 @@ class ReminderController extends Controller
         ], 200);
     }
 
-    // Mengupdate reminder (JSON)
     public function update(Request $request, Reminder $reminder)
     {
         $request->validate([
@@ -64,6 +62,8 @@ class ReminderController extends Controller
             'reminder_time' => $request->reminder_time,
         ]);
 
+        $reminder->load('task'); 
+
         return response()->json([
             'success' => true,
             'message' => 'Reminder berhasil diperbarui!',
@@ -71,7 +71,6 @@ class ReminderController extends Controller
         ], 200);
     }
 
-    // Menghapus reminder (JSON)
     public function destroy(Reminder $reminder)
     {
         $reminder->delete();

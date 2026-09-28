@@ -7,10 +7,12 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Menampilkan semua kategori
+    // Menampilkan semua kategori HANYA milik user yang sedang login
     public function index()
     {
-        $categories = Category::latest()->get();
+        $categories = Category::where('user_id', auth()->id())
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -18,7 +20,7 @@ class CategoryController extends Controller
         ], 200);
     }
 
-    // Menyimpan kategori baru
+    // Menyimpan kategori baru dan otomatis dikaitkan ke user yang login
     public function store(Request $request)
     {
         $request->validate([
@@ -26,6 +28,7 @@ class CategoryController extends Controller
         ]);
 
         $category = Category::create([
+            'user_id' => auth()->id(), // Otomatis mengisi ID user yang sedang login
             'name' => $request->name,
         ]);
 
@@ -36,18 +39,40 @@ class CategoryController extends Controller
         ], 201);
     }
 
-    // Menampilkan detail kategori
-    public function show(Category $category)
+    // Menampilkan detail kategori (pastikan milik user yang login)
+    public function show($id)
     {
+        $category = Category::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori tidak ditemukan'
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $category
         ], 200);
     }
 
-    // Mengupdate kategori
-    public function update(Request $request, Category $category)
+    // Mengupdate kategori (pastikan milik user yang login)
+    public function update(Request $request, $id)
     {
+        $category = Category::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori tidak ditemukan'
+            ], 404);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -63,9 +88,20 @@ class CategoryController extends Controller
         ], 200);
     }
 
-    // Menghapus kategori
-    public function destroy(Category $category)
+    // Menghapus kategori (pastikan milik user yang login)
+    public function destroy($id)
     {
+        $category = Category::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori tidak ditemukan'
+            ], 404);
+        }
+
         $category->delete();
 
         return response()->json([

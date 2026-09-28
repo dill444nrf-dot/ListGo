@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TaskController;
@@ -6,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController; 
 
 // ==========================================
 // ROUTE PUBLIC (Bisa diakses tanpa login)
@@ -13,7 +15,7 @@ use App\Http\Controllers\ProfileController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// 👈 Pindahkan register admin ke sini jika ingin bisa diakses tanpa token terlebih dahulu
+// Pendaftaran admin (bisa diakses publik atau sesuai kebutuhan)
 Route::post('/admin/register-admin', [AuthController::class, 'registerAdmin']);
 
 
@@ -43,4 +45,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route Reminders
     Route::apiResource('reminders', ReminderController::class);
+
+    // ==========================================
+    // ROUTE KHUSUS ADMIN (Manajemen User)
+    // ==========================================
+    Route::get('/admin/users', [AdminController::class, 'index']);        // Melihat daftar semua user
+    Route::delete('/admin/users/{id}', [AdminController::class, 'destroy']); // Menghapus user tertentu
 });

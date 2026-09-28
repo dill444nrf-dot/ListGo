@@ -8,10 +8,11 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
-    // Menampilkan semua task
+    // Menampilkan semua task HANYA milik user yang sedang login
     public function index()
     {
         $tasks = Task::with('category')
+            ->where('user_id', auth()->id()) // Filter berdasarkan user yang login
             ->latest()
             ->get();
 
@@ -21,7 +22,7 @@ class TaskController extends Controller
         ], 200);
     }
 
-    // Menampilkan form tambah task (Biasanya untuk API mengembalikan data pendukung)
+    // Menampilkan data kategori (pendukung form)
     public function create()
     {
         $categories = Category::all();
@@ -32,7 +33,7 @@ class TaskController extends Controller
         ], 200);
     }
 
-    // Menyimpan task baru
+    // Menyimpan task baru dan otomatis dikaitkan ke user yang login
     public function store(Request $request)
     {
         $request->validate([
@@ -45,7 +46,7 @@ class TaskController extends Controller
         ]);
 
         $task = Task::create([
-            'user_id' => auth()->id(),
+            'user_id' => auth()->id(), // Otomatis mengisi ID user yang sedang login
             'category_id' => $request->category_id,
             'title' => $request->title,
             'description' => $request->description,
@@ -61,10 +62,20 @@ class TaskController extends Controller
         ], 201);
     }
 
-    // Menampilkan detail task
-    public function show(Task $task)
+    // Menampilkan detail task (dipastikan milik user yang login)
+    public function show($id)
     {
-        $task->load('category');
+        $task = Task::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->with('category')
+            ->first();
+
+        if (!$task) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task tidak ditemukan atau bukan milik akun ini'
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -72,9 +83,20 @@ class TaskController extends Controller
         ], 200);
     }
 
-    // Menampilkan form edit task
-    public function edit(Task $task)
+    // Mengambil data untuk form edit
+    public function edit($id)
     {
+        $task = Task::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$task) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task tidak ditemukan'
+            ], 404);
+        }
+
         $categories = Category::all();
 
         return response()->json([
@@ -86,9 +108,20 @@ class TaskController extends Controller
         ], 200);
     }
 
-    // Mengupdate task
-    public function update(Request $request, Task $task)
+    // Mengupdate task (dipastikan milik user yang login)
+    public function update(Request $request, $id)
     {
+        $task = Task::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$task) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task tidak ditemukan atau tidak bisa diubah'
+            ], 404);
+        }
+
         $request->validate([
             'category_id' => 'required|exists:categories,id',
             'title' => 'required|string|max:255',
@@ -114,9 +147,20 @@ class TaskController extends Controller
         ], 200);
     }
 
-    // Menghapus task
-    public function destroy(Task $task)
+    // Menghapus task (dipastikan milik user yang login)
+    public function destroy($id)
     {
+        $task = Task::where('id', $id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$task) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Task tidak ditemukan'
+            ], 404);
+        }
+
         $task->delete();
 
         return response()->json([

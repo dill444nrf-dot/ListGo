@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // REGISTER
+    // REGISTER (Otomatis jadi admin jika user pertama ATAU email mengandung kata 'admin')
     public function register(Request $request)
     {
         $request->validate([
@@ -17,11 +17,20 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
+        // Tentukan role secara dinamis
+        $role = 'user'; // Default-nya user biasa
+
+        // 1. Jika belum ada satupun user di database, pendaftar pertama ini otomatis jadi admin
+        // 2. Atau jika emailnya mengandung kata 'admin'
+        if (User::count() === 0 || str_contains(strtolower($request->email), 'admin')) {
+            $role = 'admin';
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'user',
+            'role' => $role, // Otomatis terisi 'admin' atau 'user'
         ]);
 
         $token = $user->createToken('listgo-token')->plainTextToken;
@@ -34,7 +43,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    // REGISTER KHUSUS ADMIN
+    // REGISTER KHUSUS ADMIN (Cadangan jika ingin mendaftarkan admin secara spesifik lewat endpoint khusus)
     public function registerAdmin(Request $request)
     {
         $request->validate([
@@ -47,7 +56,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'admin', // 👈 Secara tegas diset sebagai admin
+            'role' => 'admin',
         ]);
 
         $token = $user->createToken('listgo-token')->plainTextToken;
@@ -87,7 +96,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-   // LOGOUT
+    // LOGOUT
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

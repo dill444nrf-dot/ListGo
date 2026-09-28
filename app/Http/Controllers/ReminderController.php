@@ -8,9 +8,15 @@ use Illuminate\Http\Request;
 
 class ReminderController extends Controller
 {
+    // Menampilkan reminder HANYA milik user yang sedang login
     public function index()
     {
-        $reminders = Reminder::with('task')->latest()->get();
+        $reminders = Reminder::with('task.category')
+            ->whereHas('task', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -18,10 +24,22 @@ class ReminderController extends Controller
         ], 200);
     }
 
+    // Menyimpan reminder baru (pastikan task-nya milik user yang login)
     public function store(Request $request)
     {
         $request->validate([
-            'task_id' => 'required|exists:tasks,id',
+            'task_id' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    $taskExists = Task::where('id', $value)
+                        ->where('user_id', auth()->id())
+                        ->exists();
+
+                    if (!$taskExists) {
+                        $fail('Task tidak ditemukan atau bukan milik akun ini.');
+                    }
+                },
+            ],
             'reminder_time' => 'required|date',
         ]);
 
@@ -31,7 +49,7 @@ class ReminderController extends Controller
             'is_sent' => false,
         ]);
 
-        $reminder->load('task'); // ✅ tambahan
+        $reminder->load('task.category');
 
         return response()->json([
             'success' => true,
@@ -40,9 +58,22 @@ class ReminderController extends Controller
         ], 201);
     }
 
-    public function show(Reminder $reminder)
+    // Menampilkan detail reminder (pastikan milik user yang login)
+    public function show($id)
     {
-        $reminder->load('task');
+        $reminder = Reminder::with('task.category')
+            ->whereHas('task', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->where('id', $id)
+            ->first();
+
+        if (!$reminder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reminder tidak ditemukan'
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -50,10 +81,35 @@ class ReminderController extends Controller
         ], 200);
     }
 
-    public function update(Request $request, Reminder $reminder)
+    // Mengupdate reminder (pastikan milik user yang login)
+    public function update(Request $request, $id)
     {
+        $reminder = Reminder::whereHas('task', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->where('id', $id)
+            ->first();
+
+        if (!$reminder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reminder tidak ditemukan'
+            ], 404);
+        }
+
         $request->validate([
-            'task_id' => 'required|exists:tasks,id',
+            'task_id' => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    $taskExists = Task::where('id', $value)
+                        ->where('user_id', auth()->id())
+                        ->exists();
+
+                    if (!$taskExists) {
+                        $fail('Task tidak ditemukan atau bukan milik akun ini.');
+                    }
+                },
+            ],
             'reminder_time' => 'required|date',
         ]);
 
@@ -62,7 +118,7 @@ class ReminderController extends Controller
             'reminder_time' => $request->reminder_time,
         ]);
 
-        $reminder->load('task'); 
+        $reminder->load('task.category');
 
         return response()->json([
             'success' => true,
@@ -71,8 +127,22 @@ class ReminderController extends Controller
         ], 200);
     }
 
-    public function destroy(Reminder $reminder)
+    // Menghapus reminder (pastikan milik user yang login)
+    public function destroy($id)
     {
+        $reminder = Reminder::whereHas('task', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->where('id', $id)
+            ->first();
+
+        if (!$reminder) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reminder tidak ditemukan'
+            ], 404);
+        }
+
         $reminder->delete();
 
         return response()->json([
